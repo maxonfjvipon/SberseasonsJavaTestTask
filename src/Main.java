@@ -3,8 +3,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Scanner;
 
 public class Main {
     // Node
@@ -28,6 +26,7 @@ public class Main {
 
         /**
          * add node child to node list
+         *
          * @param child
          */
         public void addChild(Node child) {
@@ -53,7 +52,9 @@ public class Main {
     public static Node parent = root;
     public static Node node = null;
 
-    public static void main(String[] args) {
+    enum Input { NAME, OPEN_BRACE, OPEN_QUOTE, CLOSE_QUOTE, EQUAL }
+
+    public static void main(String[] args) throws IOException {
         String inputFileName = "";
         String outputFileName = "";
         try {
@@ -65,65 +66,101 @@ public class Main {
         }
 
         FileReader fileReader = createFileReader(inputFileName);
-        Scanner scanner = new Scanner(fileReader);
 
-        String inputFileLine;
-        String name, value;
-        ArrayList<String> words;
+        StringBuilder name = new StringBuilder();
+        StringBuilder value = new StringBuilder();
+        Input input = Input.NAME;
         int openBracesCount = 0;
+        int ch;
+        while ((ch = fileReader.read()) != -1) {
+            if ((ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r') && input != Input.OPEN_QUOTE) {
+                continue;
+            }
 
-        while (scanner.hasNextLine()) {
-            inputFileLine = scanner.nextLine();
-            words = new ArrayList<>(Arrays.asList(inputFileLine.split("\\s")));
-            while (!words.isEmpty()) {
-                if (words.size() == 1) {
-                    if (words.get(0).equals("")) break;
-                    if (words.get(0).equals("}")) {
-                        if (parent == null) wrongDataFormat();
-                        parent = parent.parent;
-                        --openBracesCount;
-                        break;
-                    }
+            if (ch == '=') {
+                if (input == Input.NAME) { // name =
+                    if (!isCorrectNameFormat(name.toString())) wrongDataFormat();
+                    input = Input.EQUAL;
+                    continue;
                 }
-                if (words.size() < 3) wrongDataFormat(); // if there are less than 3 words in string
-                name = words.get(0);
-                value = words.get(2);
-                if (!isCorrectNameFormat(name)) wrongDataFormat(); // check node name format
-                if (!words.get(1).equals("=")) wrongDataFormat(); // check "="
-                if (value.equals("{")) { // name = {
+                if (input != Input.OPEN_QUOTE) wrongDataFormat();
+            }
+
+            if (ch == '{') { // done
+                if (input == Input.EQUAL) { // = {
+                    input = Input.OPEN_BRACE;
                     ++openBracesCount;
                     if (parent == null) {
                         if (root != null) wrongDataFormat();
-                        root = new Node(null, name, null);
+                        root = new Node(null, name.toString(), null);
                         parent = root;
                     } else {
-                        node = new Node(parent, name, null);
+                        node = new Node(parent, name.toString(), null);
                         parent.addChild(node);
                         parent = node;
                     }
-                    words.subList(0, 3).clear(); // remove first 3 words
-                } else if (isCorrectValueFormat(value)) { // check node value format
-                    node = new Node(parent, name, value);
-                    parent.addChild(node);
-                    words.subList(0, 3).clear();
-                } else {
-                    wrongDataFormat();
+                    name = new StringBuilder();
+                    continue;
                 }
+                if (input != Input.OPEN_QUOTE) wrongDataFormat();
+            }
 
+            if (ch == '}') {
+                if (input == Input.NAME || input == Input.EQUAL) wrongDataFormat();
+                if (input != Input.OPEN_QUOTE) {
+                    --openBracesCount;
+                    if (parent == null) wrongDataFormat();
+                    parent = parent.parent;
+                    continue;
+                }
+            }
+
+            if (ch == '\"') {
+                if (input == Input.EQUAL) { // = "
+                    input = Input.OPEN_QUOTE;
+                    value.append((char) ch);
+                    continue;
+                }
+                if (input == Input.OPEN_QUOTE) { // "" | "..."
+                    value.append((char) ch);
+                    if (!isCorrectValueFormat(value.toString())) wrongDataFormat();
+                    input = Input.CLOSE_QUOTE;
+                    if (parent == null) {
+                        if (root != null) wrongDataFormat();
+                        root = new Node(null, name.toString(), value.toString());
+                    } else {
+                        node = new Node(parent, name.toString(), value.toString());
+                        parent.addChild(node);
+//                        parent = node;
+                    }
+                    name = new StringBuilder();
+                    value = new StringBuilder();
+                    continue;
+                }
+                wrongDataFormat();
+            }
+
+            if (input == Input.OPEN_QUOTE) value.append((char) ch); // "value...
+            else {
+                name.append((char) ch); // name...
+                input = Input.NAME;
             }
         }
         // if the quantity of "{" doesn't equal to the quantity of "}"
         if (openBracesCount != 0) wrongDataFormat();
+
         FileWriter fileWriter = createFileWriter(outputFileName);
-        try {
-            fileWriter.write(root.toString());
-        } catch (IOException e) {
-            System.out.println("Can't write to output file");
-            System.exit(0);
-        } catch (NullPointerException e) {
-            System.exit(0);
-        }
-        closeFileStreams(fileReader, fileWriter);
+        if (name.toString().length() == 0) {
+            try {
+                fileWriter.write(root.toString());
+            } catch (IOException e) {
+                System.out.println("Can't write to output file");
+                System.exit(0);
+            } catch (NullPointerException e) {
+                wrongDataFormat();
+            }
+            closeFileStreams(fileReader, fileWriter);
+        } else wrongDataFormat();
     }
 
     // if data format is wrong
@@ -140,7 +177,10 @@ public class Main {
         if (value.charAt(0) != '\"' || value.charAt(value.length() - 1) != '\"') {
             return false;
         }
-        String substring = value.substring(1, value.length() - 2);
+        if (value.equals("\"\"")) {
+            return true;
+        }
+        String substring = value.substring(1, value.length() - 1);
         return !substring.contains("\"") && !substring.contains("\n");
     }
 
@@ -198,6 +238,7 @@ public class Main {
 
     /**
      * Close all file streams
+     *
      * @param fileReader
      * @param fileWriter
      */
