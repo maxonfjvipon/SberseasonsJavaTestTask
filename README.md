@@ -11,9 +11,10 @@ Syntax is:
 <quoted_string> - double quoted arbitrary string that does not contain the characters of line break or double quotes.
 <node> ::= <node_name> '=' (<quoted_string> | <list>)
 <list> = '{' <node> [node...] '}'
+```
 
 Example:
---------------------------
+```
 shape = {
 type = "tetrahedron"
 vertices = {
@@ -21,6 +22,8 @@ point = { x = “1” y = “0” z = “0” }
 point = { x = “0” y = “1” z = “0” }
 point = { x = “0” y = “0” z = “1” }
 point = { x = “1” y = “1” z = “1” }
+}
+color = { r = “0xFF” g = “0x00” b = “0x80” alpha = “0x80” }
 }
 ```
 You need to make a parser that accepts a file with one root node, and build tree data structure in the memory. Every single node has to have an integer id. Then you need to write this structure to a file with the following structure: (node_id, parent_node_id, node_name, node_value)
