@@ -5,7 +5,8 @@ Test Java task for getting an internship in Sberbank Technologies (Bryansk, Russ
 Task
 -------------------------
 You need to make a parser.
-Condition: there is a text format for storring arbitrary data that has a hierarchical structure.Syntax is:
+Condition: there is a text format for storring arbitrary data that has a hierarchical structure
+Syntax is:
 ```<node_name> - a string of letters, digits and the character '_'; not starting with the digit
 <quoted_string> - double quoted arbitrary string that does not contain the characters of line break or double quotes.
 <node> ::= <node_name> '=' (<quoted_string> | <list>)
