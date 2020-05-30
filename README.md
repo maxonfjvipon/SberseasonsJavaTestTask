@@ -13,6 +13,7 @@ Syntax is:
 <list> = '{' <node> [node...] '}'
 
 Example:
+--------------------------
 shape = {
 type = "tetrahedron"
 vertices = {
